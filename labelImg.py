@@ -97,6 +97,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.dirname = None
         self.labelHist = []
         self.lastOpenDir = None
+        self.lastProjectDir = ""
 
         # Whether we need to save or not.
         self.dirty = False
@@ -107,7 +108,8 @@ class MainWindow(QMainWindow, WindowMixin):
         self.screencast = "https://youtu.be/p0nR2YsCY_U"
 
         # Load predefined classes to the list
-        self.loadPredefinedClasses(defaultPrefdefClassFile)
+        #print(defaultPrefdefClassFile)
+        #self.loadPredefinedClasses(defaultPrefdefClassFile)
 
         # Main widgets and related state.
         self.labelDialog = LabelDialog(parent=self, listItem=self.labelHist)
@@ -209,7 +211,7 @@ class MainWindow(QMainWindow, WindowMixin):
         open = action(getStr('openFile'), self.openFile,
                       'Ctrl+O', 'open', getStr('openFileDetail'))
 
-        opendir = action(getStr('openDir'), self.openDirDialog,
+        opendir = action(getStr('openDir'), self.openProjectDialog,
                          'Ctrl+u', 'open', getStr('openDir'))
 
         copyPrevBounding = action(getStr('copyPrevBounding'), self.copyPreviousBoundingBoxes,
@@ -1119,6 +1121,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 filedir = filePath.split(basename)[0].split("/")[-2:-1][0]
             xmlPath = os.path.join(self.defaultSaveDir, basename + XML_EXT)
             txtPath = os.path.join(self.defaultSaveDir, basename + TXT_EXT)
+            #txtPath = self.defaultSaveDir
             jsonPath = os.path.join(self.defaultSaveDir, filedir + JSON_EXT)
 
             """Annotation file priority:
@@ -1257,7 +1260,45 @@ class MainWindow(QMainWindow, WindowMixin):
                     filename = filename[0]
             self.loadPascalXMLByFilename(filename)
 
+    def openProjectDialog(self, _value=False, dirpath=None, silent=False):
+        print(dirpath)
+        print(_value)
+        print(silent)
+        if not self.mayContinue():
+            return
+
+        defaultOpenDirPath = dirpath if dirpath else '.'
+        if self.lastOpenDir and os.path.exists(self.lastOpenDir):
+            defaultOpenDirPath = self.lastOpenDir
+        else:
+            defaultOpenDirPath = os.path.dirname(self.filePath) if self.filePath else '.'
+        if silent != True:
+            targetDirPath = ustr(QFileDialog.getExistingDirectory(self,
+                                                                  '%s - Open Directory' % __appname__,
+                                                                  defaultOpenDirPath,
+                                                                  QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks))
+        else:
+            targetDirPath = ustr(defaultOpenDirPath)
+        print("Hai scelto " + targetDirPath)
+
+        list = os.listdir(targetDirPath)
+        if list.__contains__("images") and list.__contains__("labels") and list.__contains__("classes.names"):
+            print("ok")
+            print(targetDirPath + "/classes.names")
+            self.lastProjectDir = targetDirPath
+            self.defaultSaveDir = targetDirPath + "/labels"
+            self.loadPredefinedClasses(targetDirPath + "/classes.names")
+            targetDirPath = targetDirPath + "/images"
+            self.lastOpenDir = targetDirPath
+            self.importDirImages(targetDirPath)
+        else:
+            self.statusBar().showMessage("Error: Folder you selected is not a project.")
+            print("no")
+
+        #self.importDirImages(targetDirPath)
+
     def openDirDialog(self, _value=False, dirpath=None, silent=False):
+        print("Open dir dialog")
         if not self.mayContinue():
             return
 
@@ -1507,6 +1548,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def loadPredefinedClasses(self, predefClassesFile):
         if os.path.exists(predefClassesFile) is True:
+            self.labelHist = None
             with codecs.open(predefClassesFile, 'r', 'utf8') as f:
                 for line in f:
                     line = line.strip()
@@ -1535,7 +1577,7 @@ class MainWindow(QMainWindow, WindowMixin):
             return
 
         self.set_format(FORMAT_YOLO)
-        tYoloParseReader = YoloReader(txtPath, self.image)
+        tYoloParseReader = YoloReader(txtPath, self.image, self.lastProjectDir + "/classes.names")
         shapes = tYoloParseReader.getShapes()
         print(shapes)
         self.loadLabels(shapes)
