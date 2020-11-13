@@ -516,6 +516,21 @@ class MainWindow(QMainWindow, WindowMixin):
             self.openDirDialog(dirpath=self.filePath, silent=True)
 
     def updateProjectData(self):
+        print(self.lastOpenDir)
+        file = open(os.path.join(self.lastOpenDir, "../" + self.projectName + "_train.txt"), "w")
+        file2 = open(os.path.join(self.lastOpenDir, "../" + self.projectName + "_valid.txt"), "w")
+        file.write("")
+        file2.write("")
+        file.close()
+        file2.close()
+        file = open(os.path.join(self.lastOpenDir, "../" + self.projectName + "_train.txt"), "w")
+        file2 = open(os.path.join(self.lastOpenDir, "../" + self.projectName + "_valid.txt"), "w")
+        for filename in os.listdir(self.lastOpenDir):
+            print(filename.title())
+            file.write(os.path.join(os.path.join(self.projectName, "images"), filename.title()) + "\n")
+            file2.write(os.path.join(os.path.join(self.projectName, "images"), filename.title()) + "\n")
+        file.close()
+        file2.close()
         pass
 
     def showError(self, content):
@@ -911,7 +926,7 @@ class MainWindow(QMainWindow, WindowMixin):
             self.canvas.selectShape(self.itemsToShapes[item])
             shape = self.itemsToShapes[item]
             # Add Chris
-            self.diffcButton.setChecked(shape.difficult)
+            #self.diffcButton.setChecked(shape.difficult)
 
     def labelItemChanged(self, item):
         shape = self.itemsToShapes[item]
