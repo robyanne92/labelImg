@@ -12,6 +12,8 @@ import subprocess
 from functools import partial
 from collections import defaultdict
 
+from PyQt5 import QtWidgets
+
 try:
     from PyQt5.QtGui import *
     from PyQt5.QtCore import *
@@ -79,10 +81,15 @@ class MainWindow(QMainWindow, WindowMixin):
         super(MainWindow, self).__init__()
         self.setWindowTitle(__appname__)
 
+        self.error_dialog = QMessageBox()
+        self.error_dialog.setIcon(QMessageBox.Critical)
+        self.error_dialog.setWindowTitle("Error")
+
         # Load setting in the main thread
         self.settings = Settings()
         self.settings.load()
         settings = self.settings
+        self.projectName = ""
 
         # Load string bundle for i18n
         self.stringBundle = StringBundle.getBundle()
@@ -132,15 +139,15 @@ class MainWindow(QMainWindow, WindowMixin):
         useDefaultLabelContainer.setLayout(useDefaultLabelQHBoxLayout)
 
         # Create a widget for edit and diffc button
-        self.diffcButton = QCheckBox(getStr('useDifficult'))
-        self.diffcButton.setChecked(False)
-        self.diffcButton.stateChanged.connect(self.btnstate)
+        #self.diffcButton = QCheckBox(getStr('useDifficult'))
+        #self.diffcButton.setChecked(False)
+        #self.diffcButton.stateChanged.connect(self.btnstate)
         self.editButton = QToolButton()
         self.editButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         # Add some of widgets to listLayout
         listLayout.addWidget(self.editButton)
-        listLayout.addWidget(self.diffcButton)
+        #listLayout.addWidget(self.diffcButton)
         listLayout.addWidget(useDefaultLabelContainer)
 
         # Create and add combobox for showing unique labels in group
@@ -208,11 +215,11 @@ class MainWindow(QMainWindow, WindowMixin):
         quit = action(getStr('quit'), self.close,
                       'Ctrl+Q', 'quit', getStr('quitApp'))
 
-        open = action(getStr('openFile'), self.openFile,
-                      'Ctrl+O', 'open', getStr('openFileDetail'))
+        open = action("New empty project", self.newEmptyProject,
+                      'Ctrl+O', 'open', "New Empty project")
 
-        opendir = action(getStr('openDir'), self.openProjectDialog,
-                         'Ctrl+u', 'open', getStr('openDir'))
+        opendir = action("Open project", self.openProjectDialog,
+                         'Ctrl+u', 'open', "Open project")
 
         copyPrevBounding = action(getStr('copyPrevBounding'), self.copyPreviousBoundingBoxes,
                                   'Ctrl+v', 'paste', getStr('copyPrevBounding'))
@@ -229,8 +236,8 @@ class MainWindow(QMainWindow, WindowMixin):
         openPrevImg = action(getStr('prevImg'), self.openPrevImg,
                              'a', 'prev', getStr('prevImgDetail'))
 
-        verify = action(getStr('verifyImg'), self.verifyImg,
-                        'space', 'verify', getStr('verifyImgDetail'))
+        verify = action("Update project data", self.updateProjectData,
+                        'space', 'verify', "Update project data")
 
         save = action(getStr('save'), self.saveFile,
                       'Ctrl+S', 'save', getStr('saveDetail'), enabled=False)
@@ -398,14 +405,13 @@ class MainWindow(QMainWindow, WindowMixin):
         self.displayLabelOption.triggered.connect(self.togglePaintLabelsOption)
 
         addActions(self.menus.file,
-                   (open, opendir, copyPrevBounding, changeSavedir, openAnnotation, self.menus.recentFiles, save,
-                    save_format, saveAs, close, resetAll, deleteImg, quit))
+                   (open, opendir, copyPrevBounding, self.menus.recentFiles, save,
+                    close, deleteImg, quit))
         addActions(self.menus.help, (help, showInfo))
         addActions(self.menus.view, (
             self.autoSaving,
-            self.singleClassMode,
             self.displayLabelOption,
-            labels, advancedMode, None,
+            labels, None,
             hideAll, showAll, None,
             zoomIn, zoomOut, zoomOrg, None,
             fitWindow, fitWidth))
@@ -420,7 +426,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         self.tools = self.toolbar('Tools')
         self.actions.beginner = (
-            open, opendir, changeSavedir, openNextImg, openPrevImg, verify, save, save_format, None, create, copy,
+            open, opendir, openNextImg, openPrevImg, verify, save, None, create, copy,
             delete, None,
             zoomIn, zoom, zoomOut, fitWindow, fitWidth)
 
@@ -508,6 +514,14 @@ class MainWindow(QMainWindow, WindowMixin):
         # Open Dir if deafult file
         if self.filePath and os.path.isdir(self.filePath):
             self.openDirDialog(dirpath=self.filePath, silent=True)
+
+    def updateProjectData(self):
+        pass
+
+    def showError(self, content):
+        self.error_dialog.setText("Error")
+        self.error_dialog.setInformativeText(content)
+        self.error_dialog.exec_()
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Control:
@@ -859,7 +873,7 @@ class MainWindow(QMainWindow, WindowMixin):
             elif self.labelFileFormat == LabelFileFormat.YOLO:
                 if annotationFilePath[-4:].lower() != ".txt":
                     annotationFilePath += TXT_EXT
-                self.labelFile.saveYoloFormat(annotationFilePath, shapes, self.filePath, self.imageData, self.labelHist,
+                self.labelFile.saveYoloFormat(annotationFilePath, shapes, self.filePath, self.imageData, self.labelHist, self.projectName,
                                               self.lineColor.getRgb(), self.fillColor.getRgb())
             elif self.labelFileFormat == LabelFileFormat.CREATE_ML:
                 if annotationFilePath[-5:].lower() != ".json":
@@ -1261,9 +1275,6 @@ class MainWindow(QMainWindow, WindowMixin):
             self.loadPascalXMLByFilename(filename)
 
     def openProjectDialog(self, _value=False, dirpath=None, silent=False):
-        print(dirpath)
-        print(_value)
-        print(silent)
         if not self.mayContinue():
             return
 
@@ -1279,26 +1290,23 @@ class MainWindow(QMainWindow, WindowMixin):
                                                                   QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks))
         else:
             targetDirPath = ustr(defaultOpenDirPath)
-        print("Hai scelto " + targetDirPath)
 
-        list = os.listdir(targetDirPath)
-        if list.__contains__("images") and list.__contains__("labels") and list.__contains__("classes.names"):
-            print("ok")
-            print(targetDirPath + "/classes.names")
-            self.lastProjectDir = targetDirPath
-            self.defaultSaveDir = targetDirPath + "/labels"
-            self.loadPredefinedClasses(targetDirPath + "/classes.names")
-            targetDirPath = targetDirPath + "/images"
-            self.lastOpenDir = targetDirPath
-            self.importDirImages(targetDirPath)
-        else:
-            self.statusBar().showMessage("Error: Folder you selected is not a project.")
-            print("no")
+        if targetDirPath != "":
+            list = os.listdir(targetDirPath)
+            if list.__contains__("images") and list.__contains__("labels") and list.__contains__("classes.names"):
+                self.projectName = os.path.basename(targetDirPath)
+                self.lastProjectDir = targetDirPath
+                self.defaultSaveDir = targetDirPath + "/labels"
+                self.loadPredefinedClasses(targetDirPath + "/classes.names")
+                targetDirPath = targetDirPath + "/images"
+                self.lastOpenDir = targetDirPath
+                self.importDirImages(targetDirPath)
+            else:
+                self.statusBar().showMessage("Error: Folder you selected is not a project.")
 
         #self.importDirImages(targetDirPath)
 
     def openDirDialog(self, _value=False, dirpath=None, silent=False):
-        print("Open dir dialog")
         if not self.mayContinue():
             return
 
@@ -1400,6 +1408,40 @@ class MainWindow(QMainWindow, WindowMixin):
 
         if filename:
             self.loadFile(filename)
+
+    def newEmptyProject(self, _value=False):
+        if not self.mayContinue():
+            return
+        targetDirPath = ustr(QFileDialog.getExistingDirectory(self,
+                                                              '%s - Choose an empty directory' % __appname__,
+                                                              "/",
+                                                              QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks))
+
+        if targetDirPath != "":
+            self.projectName = os.path.basename(targetDirPath)
+            list = os.listdir(targetDirPath)
+            if(len(list) > 0):
+                self.showError("Please select an empty directory")
+                return
+            else:
+                os.mkdir(os.path.join(targetDirPath, "images"))
+                os.mkdir(os.path.join(targetDirPath, "labels"))
+                file = open(os.path.join(targetDirPath, "classes.names"), "w")
+                file.write("#insert classes here")
+                file.close()
+                file = open(os.path.join(targetDirPath, self.projectName + "_train.txt"), "w")
+                file.close()
+                file = open(os.path.join(targetDirPath, self.projectName + "_valid.txt"), "w")
+                file.close()
+                file = open(os.path.join(targetDirPath, self.projectName + ".data"), "w")
+                file.write("classes=0"
+                           "\ntrain=" + os.path.join(self.projectName, self.projectName + "_train.txt") +
+                           "\nvalid=" + os.path.join(self.projectName, self.projectName + "_valid.txt") +
+                           "\nnames=" + os.path.join(self.projectName, self.projectName + "classes.names"))
+                file.close()
+                return
+        #self.importDirImages(targetDirPath)
+
 
     def openFile(self, _value=False):
         if not self.mayContinue():

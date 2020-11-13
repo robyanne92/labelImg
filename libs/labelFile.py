@@ -85,7 +85,7 @@ class LabelFile(object):
         writer.save(targetFile=filename)
         return
 
-    def saveYoloFormat(self, filename, shapes, imagePath, imageData, classList,
+    def saveYoloFormat(self, filename, shapes, imagePath, imageData, classList, projectName,
                             lineColor=None, fillColor=None, databaseSrc=None):
         imgFolderPath = os.path.dirname(imagePath)
         imgFolderName = os.path.split(imgFolderPath)[-1]
@@ -112,7 +112,7 @@ class LabelFile(object):
             bndbox = LabelFile.convertPoints2BndBox(points)
             writer.addBndBox(bndbox[0], bndbox[1], bndbox[2], bndbox[3], label, difficult)
 
-        writer.save(targetFile=filename, classList=classList)
+        writer.save(targetFile=filename, classList=classList, projectName=projectName)
         return
 
     def toggleVerify(self):

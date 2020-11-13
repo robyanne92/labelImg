@@ -49,7 +49,7 @@ class YOLOWriter:
 
         return classIndex, xcen, ycen, w, h
 
-    def save(self, classList=[], targetFile=None):
+    def save(self, classList=[], targetFile=None, projectName=""):
 
         out_file = None #Update yolo .txt
         out_class_file = None   #Update class list .txt
@@ -61,8 +61,14 @@ class YOLOWriter:
             out_class_file = open(classesFile, 'w')
 
         else:
+            file = open(os.path.join(os.path.dirname(os.path.abspath(targetFile)), "../" + projectName + ".data"), "w")
+            file.write("classes=" + str(len(classList)) +
+                       "\ntrain=" + os.path.join(projectName, projectName + "_train.txt") +
+                       "\nvalid=" + os.path.join(projectName, projectName + "_valid.txt") +
+                       "\nnames=" + os.path.join(projectName, projectName + "classes.names"))
+            file.close()
             out_file = codecs.open(targetFile, 'w', encoding=ENCODE_METHOD)
-            classesFile = os.path.join(os.path.dirname(os.path.abspath(targetFile)), "classes.txt")
+            classesFile = os.path.join(os.path.dirname(os.path.abspath(targetFile)), "../classes.names")
             out_class_file = open(classesFile, 'w')
 
 
