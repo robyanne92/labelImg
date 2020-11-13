@@ -11,6 +11,18 @@ LabelImg
     :width: 200px
     :align: center
 
+Modifiche by Roberto Iannello:
+
+- Creare un nuovo progetto tramite l'apposito pulsante. Scegliere una cartella vuota e confermare. In questo modo saranno create automaticamente le cartelle ed i files già adatti per il training con yolo.
+
+
+
+
+
+
+
+
+
 LabelImg is a graphical image annotation tool.
 
 It is written in Python and uses Qt for its graphical interface.
