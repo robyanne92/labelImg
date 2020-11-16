@@ -449,7 +449,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.zoom_level = 100
         self.fit_window = False
         # Add Chris
-        self.difficult = False
+        #self.difficult = False
 
         ## Fix the compatible issue for qt4 and qt5. Convert the QStringList to python list
         if settings.get(SETTING_RECENT_FILES):
@@ -482,7 +482,7 @@ class MainWindow(QMainWindow, WindowMixin):
         Shape.fill_color = self.fillColor = QColor(settings.get(SETTING_FILL_COLOR, DEFAULT_FILL_COLOR))
         self.canvas.setDrawingColor(self.lineColor)
         # Add chris
-        Shape.difficult = self.difficult
+        #Shape.difficult = self.difficult
 
         def xbool(x):
             if isinstance(x, QVariant):
@@ -767,7 +767,7 @@ class MainWindow(QMainWindow, WindowMixin):
         if not item:  # If not selected Item, take the first one
             item = self.labelList.item(self.labelList.count() - 1)
 
-        difficult = self.diffcButton.isChecked()
+        difficult = False
 
         try:
             shape = self.itemsToShapes[item]
@@ -945,9 +945,12 @@ class MainWindow(QMainWindow, WindowMixin):
         position MUST be in global coordinates.
         """
         if not self.useDefaultLabelCheckbox.isChecked() or not self.defaultLabelTextLine.text():
-            if len(self.labelHist) > 0:
+            if self.labelHist is not None and len(self.labelHist) > 0:
                 self.labelDialog = LabelDialog(
                     parent=self, listItem=self.labelHist)
+            else:
+                self.labelDialog = LabelDialog(
+                    parent=self, listItem=[])
 
             # Sync single class mode from PR#106
             if self.singleClassMode.isChecked() and self.lastLabel:
@@ -959,7 +962,7 @@ class MainWindow(QMainWindow, WindowMixin):
             text = self.defaultLabelTextLine.text()
 
         # Add Chris
-        self.diffcButton.setChecked(False)
+        #self.diffcButton.setChecked(False)
         if text is not None:
             self.prevLabelText = text
             generate_color = generateColorByText(text)
@@ -971,7 +974,8 @@ class MainWindow(QMainWindow, WindowMixin):
             else:
                 self.actions.editMode.setEnabled(True)
             self.setDirty()
-
+            if self.labelHist is None:
+                self.labelHist = []
             if text not in self.labelHist:
                 self.labelHist.append(text)
         else:
