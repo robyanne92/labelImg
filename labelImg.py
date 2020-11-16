@@ -516,7 +516,6 @@ class MainWindow(QMainWindow, WindowMixin):
             self.openDirDialog(dirpath=self.filePath, silent=True)
 
     def updateProjectData(self):
-        print(self.lastOpenDir)
         file = open(os.path.join(self.lastOpenDir, "../" + self.projectName + "_train.txt"), "w")
         file2 = open(os.path.join(self.lastOpenDir, "../" + self.projectName + "_valid.txt"), "w")
         file.write("")
@@ -526,7 +525,6 @@ class MainWindow(QMainWindow, WindowMixin):
         file = open(os.path.join(self.lastOpenDir, "../" + self.projectName + "_train.txt"), "w")
         file2 = open(os.path.join(self.lastOpenDir, "../" + self.projectName + "_valid.txt"), "w")
         for filename in os.listdir(self.lastOpenDir):
-            print(filename.title())
             file.write(os.path.join(os.path.join(self.projectName, "images"), filename.title()) + "\n")
             file2.write(os.path.join(os.path.join(self.projectName, "images"), filename.title()) + "\n")
         file.close()
@@ -1640,7 +1638,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.set_format(FORMAT_YOLO)
         tYoloParseReader = YoloReader(txtPath, self.image, self.lastProjectDir + "/classes.names")
         shapes = tYoloParseReader.getShapes()
-        print(shapes)
         self.loadLabels(shapes)
         self.canvas.verified = tYoloParseReader.verified
 
